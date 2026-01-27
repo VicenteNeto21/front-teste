@@ -101,6 +101,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // -----------------------------------------------------------------------------
 var app = builder.Build();
 
+
 // -----------------------------------------------------------------------------
 // Aplicar migrations automaticamente
 // -----------------------------------------------------------------------------
@@ -108,6 +109,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     dbContext.Database.Migrate();
+    await DbSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())

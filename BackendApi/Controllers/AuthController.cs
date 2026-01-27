@@ -20,6 +20,8 @@ namespace BackendApi.Controllers
             var response = await _authInterface.Login(userLogin);
             return Ok(response);
         }
+        
+        [Authorize(Roles = "Admin")]
         [HttpPost("Register")]
         public async Task<ActionResult> Register(UserCriacaoDTO UserRegister)
         {
