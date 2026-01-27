@@ -5,7 +5,9 @@ namespace BackendApi.Services.ProducaoService
 {
     public interface IProducaoService
     {
-        Task<Response<string>> CriarProducao(ProducaoAddDTO dto);
-        Task<Response<ProducaoApiario>> BuscarProducaoDoApiario(int apiarioId);
+        Task<Response<ProducaoApiarioResponseDTO>> BuscarProducaoDoApiario(int userId, int apiarioId);
+        Task<Response<List<GraficoMensalProducaoDTO>>> BuscarGraficoMensal(int userId, int ano);
+        Task<Response<ProducaoResumoDTO>> BuscarResumoProducao(int userId);
+
     }
 }

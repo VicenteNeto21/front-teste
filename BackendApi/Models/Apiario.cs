@@ -5,6 +5,7 @@ namespace BackendApi.Models
     public class Apiario
     {
         public int Id { get; set; }
+        
         public required User User { get; set; }
         public Localizacao? Localizacao { get; set; }
         public string? Coord_X {get; set;}

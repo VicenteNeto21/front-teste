@@ -29,7 +29,7 @@ builder.Services.AddScoped<IAuthInterface, AuthService>();
 builder.Services.AddScoped<ISenhaInterface, SenhaService>();
 builder.Services.AddScoped<IApiarioService, ApiarioService>();
 builder.Services.AddScoped<IColmeiaService, ColmeiaService>();
-//builder.Services.AddScoped<IProducaoService>();
+builder.Services.AddScoped<IProducaoService, ProducaoService>();
 builder.Services.AddScoped<IMovimentacaoService, MovimentacaoService>();
 
 
