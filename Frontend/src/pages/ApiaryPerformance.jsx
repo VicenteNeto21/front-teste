@@ -55,20 +55,28 @@ const ApiaryPerformance = () => {
         const loadProduction = async () => {
             try {
                 setLoading(true);
-                // ENDPOINT DE PRODUÇÃO ESTÁ DESATIVADO NO BACKEND
-                // const data = await buscarProducaoDoApiario(selectedApiary);
 
-                // Usando dados zerados enquanto backend não é reativado
-                const realTotals = {
-                    producao: 0,
-                    estoque: 0,
-                    venda: 0
-                };
+                const producaoData = await buscarProducaoDoApiario(selectedApiary);
+                console.log('[DEBUG] Resposta bruta buscarProducaoDoApiario:', producaoData);
+                let realTotals = { producao: 0, estoque: 0, venda: 0 };
+                let chart = [];
+                if (producaoData && producaoData.dados) {
+                    const d = producaoData.dados;
+                    // Corrige para aceitar tanto totalVendido quanto totalVendidoKg
+                    const totalVendido =
+                        d.totalVendido !== undefined ? d.totalVendido :
+                            d.totalVendidoKg !== undefined ? d.totalVendidoKg : 0;
+                    realTotals = {
+                        producao: d.totalProduzidoKg || 0,
+                        estoque: d.estoqueAtualKg || 0,
+                        venda: totalVendido
+                    };
+                    chart = [
+                        { name: 'Total', valor: d.totalProduzidoKg || 0 }
+                    ];
+                }
                 setTotals(realTotals);
-
-                setChartData([
-                    { name: 'Total', valor: realTotals.producao }
-                ]);
+                setChartData(chart);
 
             } catch (error) {
                 console.warn("Erro ao buscar produção:", error);
@@ -100,26 +108,35 @@ const ApiaryPerformance = () => {
         { value: 'Mensal', label: 'Mensal' }
     ];
 
-    const yearOptions = [
-        { value: '2025', label: '2025' },
-        { value: '2024', label: '2024' },
-        { value: '2023', label: '2023' }
-    ];
+    // Opções dinâmicas de ano e mês, baseadas nos dados de produção
+    const [yearOptions, setYearOptions] = useState([]);
+    const [monthOptions, setMonthOptions] = useState([]);
 
-    const monthOptions = [
-        { value: '1', label: 'Janeiro' },
-        { value: '2', label: 'Fevereiro' },
-        { value: '3', label: 'Março' },
-        { value: '4', label: 'Abril' },
-        { value: '5', label: 'Maio' },
-        { value: '6', label: 'Junho' },
-        { value: '7', label: 'Julho' },
-        { value: '8', label: 'Agosto' },
-        { value: '9', label: 'Setembro' },
-        { value: '10', label: 'Outubro' },
-        { value: '11', label: 'Novembro' },
-        { value: '12', label: 'Dezembro' }
-    ];
+    // Atualiza opções de ano e mês sempre que chartData mudar
+    useEffect(() => {
+        // Extrai anos e meses únicos dos dados de produção
+        let anos = new Set();
+        let meses = new Set();
+        if (Array.isArray(chartData)) {
+            chartData.forEach(item => {
+                // name pode ser ano ou mês dependendo do filtro
+                if (period === 'Anual') {
+                    if (item.name && !isNaN(item.name)) anos.add(item.name);
+                } else {
+                    if (item.name && !isNaN(item.name)) meses.add(item.name);
+                }
+            });
+        }
+        // Se não houver dados, usa o ano atual
+        if (anos.size === 0) anos.add(new Date().getFullYear().toString());
+        if (meses.size === 0) for (let i = 1; i <= 12; i++) meses.add(i.toString());
+
+        setYearOptions(Array.from(anos).sort((a, b) => b - a).map(y => ({ value: String(y), label: String(y) })));
+        setMonthOptions(Array.from(meses).sort((a, b) => a - b).map(m => ({
+            value: String(m), label: [
+                '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][parseInt(m)] || m
+        })));
+    }, [chartData, period]);
 
     return (
         <div className="registration-page">

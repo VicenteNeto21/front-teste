@@ -161,8 +161,11 @@ const HiveRegistration = () => {
                 // A API pode retornar apiários sem polígono.
                 // Tentamos recuperar o polígono desenhado do localStorage.
 
+                // Filter out inactive apiaries
+                const activeApiariesData = data.filter(api => api.atividade !== 0);
+
                 // Mapeia para adicionar polígono visual se tiver coordenadas
-                const apiariosComPoligono = data.map(api => {
+                const apiariosComPoligono = activeApiariesData.map(api => {
                     let polygon = [];
                     // Como a API só retorna ponto central, criamos um quadrado padrão para visualização
                     if (api.coord_X && api.coord_Y) {

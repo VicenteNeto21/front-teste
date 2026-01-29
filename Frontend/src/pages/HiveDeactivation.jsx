@@ -10,12 +10,14 @@ import ToastCenter from '../components/Toast';
 import CustomSelect from '../components/CustomSelect';
 import CustomCalendar from '../components/CustomCalendar';
 
+import { buscarApiarios, buscarColmeiasDoApiario, editarColmeia } from '../services/apiarioService';
+
 const HiveDeactivation = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [toast, setToast] = useState(null);
     const [apiaries, setApiaries] = useState([]);
-    const [hives, setHives] = useState([]);
-    const [filteredHives, setFilteredHives] = useState([]);
+    const [hives, setHives] = useState([]); // Todas as colmeias do apiário selecionado
     const [showCalendar, setShowCalendar] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const calendarRef = useRef(null);
@@ -27,43 +29,64 @@ const HiveDeactivation = () => {
         dataDesativacao: new Date()
     });
 
-    const location = useLocation();
-
-    // Carrega apiários e colmeias do localStorage
+    // Carrega apiários da API
     useEffect(() => {
-        const storedApiaries = JSON.parse(localStorage.getItem('hf_apiaries') || '[]');
-        const storedHives = JSON.parse(localStorage.getItem('hf_hives') || '[]');
-        setApiaries(storedApiaries);
-        setHives(storedHives);
+        const loadApiaries = async () => {
+            try {
+                const response = await buscarApiarios();
+                let apiariesData = [];
+                if (Array.isArray(response)) {
+                    apiariesData = response;
+                } else if (response?.dados && Array.isArray(response.dados)) {
+                    apiariesData = response.dados;
+                }
+                // Filter out inactive apiaries
+                const activeApiariesData = apiariesData.filter(ap => ap.atividade !== 0);
+                setApiaries(activeApiariesData);
 
-        // Preenche dados se vierem da navegação (ApiaryDetails)
-        if (location.state?.apiarioId) {
-            setFormData(prev => ({ ...prev, apiario: String(location.state.apiarioId) }));
-        }
-
-        // Se tiver colmeiaId, preenche também (precisa esperar carregar hives ou apenas setar)
-        // Como o useEffect roda após render, podemos setar, mas o filtro de colmeias depende do apiário estar setado
-        if (location.state?.colmeiaId) {
-            setFormData(prev => ({
-                ...prev,
-                apiario: String(location.state.apiarioId),
-                colmeia: String(location.state.colmeiaId)
-            }));
-        }
+                // Se vier da navegação (ApiaryDetails), preenche o apiário
+                if (location.state?.apiarioId) {
+                    setFormData(prev => ({ ...prev, apiario: String(location.state.apiarioId) }));
+                }
+            } catch (error) {
+                console.error('Erro ao buscar apiários:', error);
+                showToast('Erro ao carregar apiários', 'error');
+            }
+        };
+        loadApiaries();
     }, [location.state]);
 
-    // Filtra colmeias quando o apiário é selecionado
+    // Busca colmeias quando o apiário é selecionado
     useEffect(() => {
-        if (formData.apiario) {
-            const filtered = hives.filter(hive => String(hive.apiario) === formData.apiario);
-            setFilteredHives(filtered);
-        } else {
-            setFilteredHives([]);
-        }
+        const loadHives = async () => {
+            if (!formData.apiario) {
+                setHives([]);
+                return;
+            }
 
-        // Só reseta a colmeia se ela não estiver válida para o novo apiário
-        // E evita resetar se acabamos de preencher via location.state (que seta ambos)
-    }, [formData.apiario, hives]);
+            try {
+                const response = await buscarColmeiasDoApiario(formData.apiario);
+                let hivesData = [];
+                if (Array.isArray(response)) {
+                    hivesData = response;
+                } else if (response?.dados && Array.isArray(response.dados)) {
+                    hivesData = response.dados;
+                }
+                setHives(hivesData);
+
+                // Se vier da navegação (ApiaryDetails) e o apiário coincidir, preenche a colmeia
+                if (location.state?.colmeiaId && String(location.state.apiarioId) === String(formData.apiario)) {
+                    setFormData(prev => ({ ...prev, colmeia: String(location.state.colmeiaId) }));
+                }
+            } catch (error) {
+                console.error("Erro ao buscar colmeias:", error);
+                setHives([]);
+            }
+        };
+
+        loadHives();
+    }, [formData.apiario, location.state]);
+
 
     const showToast = (message, type) => {
         setToast({ message, type });
@@ -81,29 +104,24 @@ const HiveDeactivation = () => {
         setIsModalOpen(true);
     };
 
-    const confirmDeactivation = () => {
-        const newDeactivation = {
-            id: Date.now(),
-            ...formData,
-            dataDesativacao: formData.dataDesativacao instanceof Date ? formData.dataDesativacao.toISOString() : formData.dataDesativacao,
-            createdAt: new Date().toISOString()
-        };
-
+    const confirmDeactivation = async () => {
         try {
-            // Salva o registro de desativação
-            const existingDeactivations = JSON.parse(localStorage.getItem('hf_deactivated_hives') || '[]');
-            const updatedDeactivations = [...existingDeactivations, newDeactivation];
-            localStorage.setItem('hf_deactivated_hives', JSON.stringify(updatedDeactivations));
+            // Verifica se a colmeia existe na lista atual
+            const selectedHive = hives.find(h => String(h.id) === String(formData.colmeia));
+            if (!selectedHive) {
+                showToast('Colmeia inválida.', 'error');
+                return;
+            }
 
-            // ATUALIZA o status da colmeia em hf_hives
-            const storedHives = JSON.parse(localStorage.getItem('hf_hives') || '[]');
-            const updatedHives = storedHives.map(hive => {
-                if (String(hive.id) === String(formData.colmeia)) {
-                    return { ...hive, active: false };
-                }
-                return hive;
-            });
-            localStorage.setItem('hf_hives', JSON.stringify(updatedHives));
+            // Payload conforme ColmeiaUpdateDTO.cs
+            // Status 0 para Inativo
+            const payload = {
+                anoColmeia: selectedHive.anoColmeia,
+                anoRainha: selectedHive.anoRainha,
+                status: 0
+            };
+
+            await editarColmeia(selectedHive.id, payload);
 
             setIsModalOpen(false);
             showToast('Colmeia desativada com sucesso!', 'success');
@@ -111,9 +129,10 @@ const HiveDeactivation = () => {
             setTimeout(() => {
                 navigate('/dashboard');
             }, 1500);
+
         } catch (error) {
-            console.error("Error saving to localStorage:", error);
-            showToast('Erro ao salvar os dados. Tente novamente.', 'error');
+            console.error("Erro ao desativar colmeia:", error);
+            showToast('Erro ao atualizar status da colmeia. Tente novamente.', 'error');
             setIsModalOpen(false);
         }
     };
@@ -160,24 +179,24 @@ const HiveDeactivation = () => {
                             <CustomSelect
                                 options={apiaries.map(ap => ({
                                     value: String(ap.id),
-                                    label: ap.nomeApelido
+                                    label: ap.nomeApelido || ap.nome || `Apiário #${ap.id}`
                                 }))}
                                 value={formData.apiario}
-                                onChange={(val) => setFormData({ ...formData, apiario: val })}
-                                placeholder="Selecione o apiário"
+                                onChange={(val) => setFormData({ ...formData, apiario: val, colmeia: '' })}
+                                placeholder={apiaries.length === 0 ? "Nenhum apiário encontrado" : "Selecione o apiário"}
                             />
                         </div>
 
                         <div className="input-group">
                             <label>Colmeia</label>
                             <CustomSelect
-                                options={filteredHives.map(hive => ({
+                                options={hives.map(hive => ({
                                     value: String(hive.id),
                                     label: `Colmeia ${hive.anoColmeia}${hive.anoRainha ? ` - Rainha ${hive.anoRainha}` : ''}`
                                 }))}
                                 value={formData.colmeia}
                                 onChange={(val) => setFormData({ ...formData, colmeia: val })}
-                                placeholder={formData.apiario ? "Selecione a colmeia" : "Selecione um apiário primeiro"}
+                                placeholder={formData.apiario ? (hives.length === 0 ? "Nenhuma colmeia neste apiário" : "Selecione a colmeia") : "Selecione um apiário primeiro"}
                                 disabled={!formData.apiario}
                             />
                         </div>

@@ -36,4 +36,5 @@ services:
       test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "HoneyFlor@123", "-Q", "SELECT 1", "-C"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s

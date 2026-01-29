@@ -5,7 +5,7 @@ import L from 'leaflet';
 import { Pencil, Power, ArrowLeft, Bug, Droplets, Calendar, MapPin, Hexagon, Plus } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import '../assets/css/ApiaryDetails.css';
-import { buscarApiarios, editarApiario, buscarColmeiasDoApiario, editarColmeia, buscarProducaoDoApiario } from '../services/apiarioService';
+import { buscarApiarios, editarApiario, buscarColmeiasDoApiario, editarColmeia, buscarProducaoDoApiario, buscarTiposMel } from '../services/apiarioService';
 import beeIcon from '../assets/img/Beehive.svg';
 
 // Components e Assets
@@ -195,9 +195,8 @@ const ApiaryDetails = () => {
 
         loadData();
 
-        // Carrega tipos de mel (mantém local por enquanto ou move para constante)
-        // Tipos de mel padrão
-        setHoneyTypes(["Silvestre", "Eucalipto", "Laranjeira", "Jataí", "Mandaçaia"]);
+        // Carrega tipos de mel
+        setHoneyTypes(buscarTiposMel());
 
     }, [id]);
 
@@ -517,7 +516,7 @@ const ApiaryDetails = () => {
                                         Tipo de mel
                                     </label>
                                     <CustomSelect
-                                        options={honeyTypes.map(type => ({ value: type, label: type }))}
+                                        options={honeyTypes}
                                         value={selectedHive.tipoMel}
                                         onChange={(val) => handleHiveChange('tipoMel', val)}
                                         placeholder="Selecione o tipo"
@@ -579,10 +578,7 @@ const ApiaryDetails = () => {
                                 <div className="input-group">
                                     <label>Tipo de mel <span className="required-star">*</span></label>
                                     <CustomSelect
-                                        options={honeyTypes.map(type => ({
-                                            value: type,
-                                            label: type
-                                        }))}
+                                        options={honeyTypes}
                                         value={formData.tipoMel}
                                         onChange={(val) => setFormData({ ...formData, tipoMel: val })}
                                         placeholder="Selecione o tipo de mel"

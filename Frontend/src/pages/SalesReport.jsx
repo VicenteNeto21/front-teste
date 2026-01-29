@@ -4,9 +4,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { ArrowLeft } from 'lucide-react';
 import '../assets/css/HiveRegistration.css';
 import '../assets/css/Reports.css';
-import { buscarApiarios } from '../services/apiarioService';
+import { buscarApiarios, buscarProducaoDoApiario } from '../services/apiarioService';
 import Navbar from '../components/Navbar';
 import CustomSelect from '../components/CustomSelect';
+import ToastCenter from '../components/Toast';
 
 const SalesReport = () => {
     const navigate = useNavigate();
@@ -18,124 +19,27 @@ const SalesReport = () => {
     const [semana, setSemana] = useState('1');
     const [salesData, setSalesData] = useState([]);
     const [priceData, setPriceData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [toast, setToast] = useState(null);
 
     const periodOptions = [
         { value: 'ano', label: 'Anual' },
-        { value: 'mes', label: 'Mensal' },
-        { value: 'semana', label: 'Semanal' }
+        // { value: 'mes', label: 'Mensal' }, // Adicionar suporte depois se necessário
+        // { value: 'semana', label: 'Semanal' }
     ];
 
     const yearOptions = [
+        { value: '2026', label: '2026' },
         { value: '2025', label: '2025' },
         { value: '2024', label: '2024' },
         { value: '2023', label: '2023' }
     ];
 
-    const monthOptions = [
-        { value: '1', label: 'Janeiro' },
-        { value: '2', label: 'Fevereiro' },
-        { value: '3', label: 'Março' },
-        { value: '4', label: 'Abril' },
-        { value: '5', label: 'Maio' },
-        { value: '6', label: 'Junho' },
-        { value: '7', label: 'Julho' },
-        { value: '8', label: 'Agosto' },
-        { value: '9', label: 'Setembro' },
-        { value: '10', label: 'Outubro' },
-        { value: '11', label: 'Novembro' },
-        { value: '12', label: 'Dezembro' }
-    ];
-
-    const weekOptions = [
-        { value: '1', label: 'Semana 1' },
-        { value: '2', label: 'Semana 2' },
-        { value: '3', label: 'Semana 3' },
-        { value: '4', label: 'Semana 4' }
-    ];
-
-    const vendasAnual = [
-        { name: 'Jan', valor: 4200 },
-        { name: 'Fev', valor: 3800 },
-        { name: 'Mar', valor: 4500 },
-        { name: 'Abr', valor: 5120 },
-        { name: 'Mai', valor: 5800 },
-        { name: 'Jun', valor: 4900 },
-        { name: 'Jul', valor: 4600 },
-        { name: 'Ago', valor: 4800 },
-        { name: 'Set', valor: 5120 },
-        { name: 'Out', valor: 4750 },
-        { name: 'Nov', valor: 4320 },
-        { name: 'Dez', valor: 5890 }
-    ];
-
-    const precosAnual = [
-        { name: 'Jan', valor: 28 },
-        { name: 'Fev', valor: 30 },
-        { name: 'Mar', valor: 29 },
-        { name: 'Abr', valor: 32 },
-        { name: 'Mai', valor: 35 },
-        { name: 'Jun', valor: 33 },
-        { name: 'Jul', valor: 31 },
-        { name: 'Ago', valor: 34 },
-        { name: 'Set', valor: 36 },
-        { name: 'Out', valor: 38 },
-        { name: 'Nov', valor: 37 },
-        { name: 'Dez', valor: 40 }
-    ];
-
-    const getMensalData = (baseVenda, basePreco) => {
-        const dias = [];
-        const diasPreco = [];
-        for (let i = 1; i <= 30; i++) {
-            dias.push({
-                name: `${i}`,
-                valor: Math.floor(baseVenda * (0.3 + Math.random() * 0.9))
-            });
-            diasPreco.push({
-                name: `${i}`,
-                valor: Math.floor(basePreco * (0.9 + Math.random() * 0.2))
-            });
-        }
-        return { vendas: dias, precos: diasPreco };
+    const showToast = (message, type) => {
+        setToast({ message, type });
     };
 
-    const getSemanalData = (baseVenda, basePreco) => {
-        return {
-            vendas: [
-                { name: 'Seg', valor: Math.floor(baseVenda * (0.8 + Math.random() * 0.4)) },
-                { name: 'Ter', valor: Math.floor(baseVenda * (0.7 + Math.random() * 0.5)) },
-                { name: 'Qua', valor: Math.floor(baseVenda * (0.9 + Math.random() * 0.3)) },
-                { name: 'Qui', valor: Math.floor(baseVenda * (0.6 + Math.random() * 0.6)) },
-                { name: 'Sex', valor: Math.floor(baseVenda * (1.0 + Math.random() * 0.4)) },
-                { name: 'Sáb', valor: Math.floor(baseVenda * (1.2 + Math.random() * 0.5)) },
-                { name: 'Dom', valor: Math.floor(baseVenda * (0.5 + Math.random() * 0.3)) }
-            ],
-            precos: [
-                { name: 'Seg', valor: basePreco },
-                { name: 'Ter', valor: basePreco },
-                { name: 'Qua', valor: basePreco },
-                { name: 'Qui', valor: basePreco },
-                { name: 'Sex', valor: Math.floor(basePreco * 1.05) },
-                { name: 'Sáb', valor: Math.floor(basePreco * 1.1) },
-                { name: 'Dom', valor: Math.floor(basePreco * 1.1) }
-            ]
-        };
-    };
-
-    const getMockData = () => {
-        switch (periodo) {
-            case 'ano':
-                return { vendas: vendasAnual, precos: precosAnual };
-            case 'mes':
-                return getMensalData(150, 35);
-            case 'semana':
-                return getSemanalData(450, 35);
-            default:
-                return { vendas: vendasAnual, precos: precosAnual };
-        }
-    };
-
-    // Busca apiários ao carregar
+    // Busca apiários ao carregar (somente ativos)
     useEffect(() => {
         const loadApiarios = async () => {
             try {
@@ -143,21 +47,84 @@ const SalesReport = () => {
                 let arr = [];
                 if (Array.isArray(res)) arr = res;
                 else if (res?.dados && Array.isArray(res.dados)) arr = res.dados;
-                setApiarios(arr);
-                if (arr.length > 0 && !apiarioId) setApiarioId(String(arr[0].id));
+
+                // Filter out inactive apiaries
+                const activeApiaries = arr.filter(ap => ap.atividade !== 0);
+
+                setApiarios(activeApiaries);
+                if (activeApiaries.length > 0 && !apiarioId) setApiarioId(String(activeApiaries[0].id));
             } catch (error) {
                 console.error("Erro ao carregar apiários:", error);
+                showToast("Erro ao carregar lista de apiários.", "error");
             }
         };
         loadApiarios();
     }, []);
 
-    // Atualiza dados mockados
+    // Busca dados de vendas quando apiarioId, ano ou periodo mudam
     useEffect(() => {
-        const mockData = getMockData();
-        setSalesData(mockData.vendas);
-        setPriceData(mockData.precos);
-    }, [ano, mes, semana, periodo, apiarioId]);
+        const fetchSalesData = async () => {
+            if (!apiarioId) return;
+
+            setLoading(true);
+            try {
+                const prodRes = await buscarProducaoDoApiario(apiarioId);
+                const dados = Array.isArray(prodRes) ? prodRes : (prodRes?.dados || []);
+
+                // Filtra por Vendas (Tipo 2) e Ano
+                const validSales = dados.filter(m => {
+                    if (m.tipo !== 2) return false;
+                    const dataMov = m.data ? new Date(m.data) : null;
+                    if (!dataMov) return false;
+                    return dataMov.getFullYear().toString() === ano;
+                });
+
+                // Agrega por mês
+                const monthlySales = Array(12).fill(0).map((_, i) => ({
+                    name: new Date(0, i).toLocaleString('pt-BR', { month: 'short' }),
+                    index: i + 1,
+                    valor: 0, // Valor em R$
+                    volume: 0, // Volume em Kg
+                    count: 0
+                }));
+
+                validSales.forEach(sale => {
+                    const date = new Date(sale.data);
+                    const monthIndex = date.getMonth();
+                    monthlySales[monthIndex].valor += (sale.valor || 0);
+                    monthlySales[monthIndex].volume += (sale.quantidadeKg || 0);
+                    monthlySales[monthIndex].count += 1;
+                });
+
+                // Prepara dados para os gráficos
+                // Gráfico 1: Vendas Totais (R$)
+                // Nota: O label Y está 'Volume (L)', mas o título é 'Vendas (R$)'. Vamos corrigir o label Y para R$.
+                const chart1Data = monthlySales.map(m => ({
+                    name: m.name,
+                    valor: m.valor
+                }));
+
+                // Gráfico 2: Preço Médio por Litro/Kg (R$/Kg)
+                const chart2Data = monthlySales.map(m => ({
+                    name: m.name,
+                    valor: m.volume > 0 ? parseFloat((m.valor / m.volume).toFixed(2)) : 0
+                }));
+
+                setSalesData(chart1Data);
+                setPriceData(chart2Data);
+
+            } catch (error) {
+                console.error("Erro ao carregar vendas:", error);
+                showToast("Erro ao carregar dados de vendas.", "error");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (periodo === 'ano') {
+            fetchSalesData();
+        }
+    }, [apiarioId, ano, periodo]);
 
     const handleBack = () => {
         navigate('/dashboard');
@@ -208,130 +175,120 @@ const SalesReport = () => {
                             placeholder="Selecione o ano"
                         />
                     </div>
-                    {/* Mostra seletor de mês quando período = mês ou semana */}
-                    {(periodo === 'mes' || periodo === 'semana') && (
-                        <div className="filter-group">
-                            <label>Mês</label>
-                            <CustomSelect
-                                options={monthOptions}
-                                value={mes}
-                                onChange={setMes}
-                                placeholder="Selecione o mês"
-                            />
-                        </div>
-                    )}
-                    {/* Mostra seletor de semana quando período = semana */}
-                    {periodo === 'semana' && (
-                        <div className="filter-group">
-                            <label>Semana</label>
-                            <CustomSelect
-                                options={weekOptions}
-                                value={semana}
-                                onChange={setSemana}
-                                placeholder="Selecione a semana"
-                            />
-                        </div>
-                    )}
                 </div>
 
                 <div className="charts-grid">
                     <div className="chart-card">
                         <h3 className="chart-title">Vendas (R$)</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart
-                                data={salesData}
-                                margin={{ top: 20, right: 30, left: 70, bottom: 40 }}
-                            >
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke="#E0E0E0"
-                                    vertical={false}
-                                />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={{ stroke: '#666', strokeWidth: 2 }}
-                                    tickLine={{ stroke: '#666' }}
-                                    tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
-                                    dy={10}
-                                    label={{ value: 'Mês', position: 'insideBottom', offset: -10, style: { fontSize: 14, fontWeight: 600, fill: '#333' } }}
-                                />
-                                <YAxis
-                                    axisLine={{ stroke: '#666', strokeWidth: 2 }}
-                                    tickLine={{ stroke: '#666' }}
-                                    tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
-                                    tickFormatter={(value) => `${value}L`}
-                                    dx={-10}
-                                    label={{ value: 'Volume (L)', angle: -90, position: 'outside', dx: -50, style: { fontSize: 14, fontWeight: 600, fill: '#333', textAnchor: 'middle' } }}
-                                />
-                                <Tooltip
-                                    formatter={(value) => [`R$ ${value}`, 'Vendas']}
-                                    contentStyle={{
-                                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                    }}
-                                    labelStyle={{ fontWeight: 600, color: '#333' }}
-                                />
-                                <Bar
-                                    dataKey="valor"
-                                    fill="#4dd0e1"
-                                    radius={[6, 6, 0, 0]}
-                                    maxBarSize={60}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {loading ? <div style={{ textAlign: 'center', padding: '50px' }}>Carregando...</div> : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart
+                                    data={salesData}
+                                    margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        stroke="#E0E0E0"
+                                        vertical={false}
+                                    />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={{ stroke: '#666', strokeWidth: 2 }}
+                                        tickLine={{ stroke: '#666' }}
+                                        tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
+                                        dy={10}
+                                        label={{ value: 'Mês', position: 'insideBottom', offset: -10, style: { fontSize: 14, fontWeight: 600, fill: '#333' } }}
+                                    />
+                                    <YAxis
+                                        axisLine={{ stroke: '#666', strokeWidth: 2 }}
+                                        tickLine={{ stroke: '#666' }}
+                                        tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
+                                        tickFormatter={(value) => `R$${value}`}
+                                        dx={-10}
+                                        label={{ value: 'Valor (R$)', angle: -90, position: 'insideLeft', style: { fontSize: 14, fontWeight: 600, fill: '#333', textAnchor: 'middle' } }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [`R$ ${value}`, 'Vendas']}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                        }}
+                                        labelStyle={{ fontWeight: 600, color: '#333' }}
+                                    />
+                                    <Bar
+                                        dataKey="valor"
+                                        fill="#4dd0e1"
+                                        radius={[6, 6, 0, 0]}
+                                        maxBarSize={60}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
 
                     <div className="chart-card">
-                        <h3 className="chart-title">Variação de preços por litro (R$/L)</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart
-                                data={priceData}
-                                margin={{ top: 20, right: 30, left: 70, bottom: 40 }}
-                            >
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    stroke="#E0E0E0"
-                                    vertical={false}
-                                />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={{ stroke: '#666', strokeWidth: 2 }}
-                                    tickLine={{ stroke: '#666' }}
-                                    tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
-                                    dy={10}
-                                    label={{ value: 'Mês', position: 'insideBottom', offset: -10, style: { fontSize: 14, fontWeight: 600, fill: '#333' } }}
-                                />
-                                <YAxis
-                                    axisLine={{ stroke: '#666', strokeWidth: 2 }}
-                                    tickLine={{ stroke: '#666' }}
-                                    tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
-                                    tickFormatter={(value) => `R$ ${value}`}
-                                    dx={-10}
-                                    label={{ value: 'Preço (R$/L)', angle: -90, position: 'outside', dx: -50, style: { fontSize: 14, fontWeight: 600, fill: '#333', textAnchor: 'middle' } }}
-                                />
-                                <Tooltip
-                                    formatter={(value) => [`R$ ${value}/L`, 'Preço']}
-                                    contentStyle={{
-                                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                    }}
-                                    labelStyle={{ fontWeight: 600, color: '#333' }}
-                                />
-                                <Bar
-                                    dataKey="valor"
-                                    fill="#ffbd59"
-                                    radius={[6, 6, 0, 0]}
-                                    maxBarSize={60}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <h3 className="chart-title">Preço Médio (R$/Kg)</h3>
+                        {loading ? <div style={{ textAlign: 'center', padding: '50px' }}>Carregando...</div> : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart
+                                    data={priceData}
+                                    margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        stroke="#E0E0E0"
+                                        vertical={false}
+                                    />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={{ stroke: '#666', strokeWidth: 2 }}
+                                        tickLine={{ stroke: '#666' }}
+                                        tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
+                                        dy={10}
+                                        label={{ value: 'Mês', position: 'insideBottom', offset: -10, style: { fontSize: 14, fontWeight: 600, fill: '#333' } }}
+                                    />
+                                    <YAxis
+                                        axisLine={{ stroke: '#666', strokeWidth: 2 }}
+                                        tickLine={{ stroke: '#666' }}
+                                        tick={{ fill: '#666', fontSize: 12, fontWeight: 500 }}
+                                        tickFormatter={(value) => `R$${value}`}
+                                        dx={-10}
+                                        label={{ value: 'Preço (R$/Kg)', angle: -90, position: 'insideLeft', style: { fontSize: 14, fontWeight: 600, fill: '#333', textAnchor: 'middle' } }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [`R$ ${value}/Kg`, 'Preço Médio']}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                        }}
+                                        labelStyle={{ fontWeight: 600, color: '#333' }}
+                                    />
+                                    <Bar
+                                        dataKey="valor"
+                                        fill="#ffbd59"
+                                        radius={[6, 6, 0, 0]}
+                                        maxBarSize={60}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </main>
+            {/* Toast Notification */}
+            {toast && (
+                <div className="toast-center-container">
+                    <ToastCenter
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 };

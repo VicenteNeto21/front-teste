@@ -27,7 +27,7 @@ const SalesRegistration = () => {
         tipoMel: ''
     });
 
-    // Carrega apiários e tipos de mel da API
+    // Carrega apiários da API
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -38,8 +38,9 @@ const SalesRegistration = () => {
                 } else if (response?.dados && Array.isArray(response.dados)) {
                     apiariesData = response.dados;
                 }
-                setApiaries(apiariesData);
-                setHoneyTypes(buscarTiposMel());
+                // Filter out inactive apiaries
+                const activeApiaries = apiariesData.filter(ap => ap.atividade !== 0);
+                setApiaries(activeApiaries);
             } catch (error) {
                 console.error('Erro ao buscar apiários:', error);
                 showToast('Erro ao carregar apiários', 'error');
@@ -47,6 +48,17 @@ const SalesRegistration = () => {
         };
         loadData();
     }, []);
+
+    // Ao selecionar apiário, preenche tipoMel automaticamente
+    useEffect(() => {
+        if (!formData.apiarioId) {
+            setFormData(f => ({ ...f, tipoMel: '' }));
+            return;
+        }
+        const apiario = apiaries.find(a => String(a.id) === String(formData.apiarioId) || String(a.Id) === String(formData.apiarioId));
+        const tipoMel = apiario?.TipoDeMel || apiario?.tipoDeMel || '';
+        setFormData(f => ({ ...f, tipoMel }));
+    }, [formData.apiarioId, apiaries]);
 
     const showToast = (message, type) => {
         setToast({ message, type });
@@ -159,19 +171,12 @@ const SalesRegistration = () => {
 
                         <div className="input-group">
                             <label>Tipo de mel <span className="required-star">*</span></label>
-                            <CustomSelect
-                                options={
-                                    Array.isArray(honeyTypes)
-                                        ? honeyTypes.map(type =>
-                                            typeof type === 'object' && type.value && type.label
-                                                ? type
-                                                : { value: String(type), label: String(type) }
-                                        )
-                                        : []
-                                }
+                            <input
+                                type="text"
                                 value={formData.tipoMel}
-                                onChange={(val) => setFormData({ ...formData, tipoMel: val })}
-                                placeholder="Selecione o tipo de mel"
+                                readOnly
+                                disabled
+                                placeholder="Tipo de mel do apiário"
                             />
                         </div>
 

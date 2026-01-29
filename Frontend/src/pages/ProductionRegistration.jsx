@@ -12,7 +12,7 @@ import CustomCalendar from '../components/CustomCalendar';
 import { buscarApiarios, registrarMovimentacao, buscarColmeiasDoApiario, buscarTiposMel } from '../services/apiarioService';
 
 const ProductionRegistration = () => {
-        const [colmeiasApiario, setColmeiasApiario] = useState([]);
+    const [colmeiasApiario, setColmeiasApiario] = useState([]);
     const navigate = useNavigate();
     const [toast, setToast] = useState(null);
     const [apiaries, setApiaries] = useState([]);
@@ -33,12 +33,12 @@ const ProductionRegistration = () => {
         setToast({ message, type });
     };
 
-    // Atualiza colmeias ao trocar apiário
+    // Atualiza colmeias ao trocar apiário e preenche tipo de mel do apiário
     useEffect(() => {
         const fetchColmeias = async () => {
             if (!formData.apiarioId) {
                 setColmeiasApiario([]);
-                setFormData(f => ({ ...f, colmeiaId: '' }));
+                setFormData(f => ({ ...f, colmeiaId: '', tipoMel: '' }));
                 return;
             }
             try {
@@ -46,14 +46,19 @@ const ProductionRegistration = () => {
                 const arr = Array.isArray(res) ? res : (res?.dados || []);
                 setColmeiasApiario(arr);
                 // Limpa colmeiaId se não existir mais
-                setFormData(f => ({ ...f, colmeiaId: arr.find(c => c.id === Number(f.colmeiaId)) ? f.colmeiaId : '' }));
+                setFormData(f => {
+                    // Busca o tipo de mel do apiário selecionado
+                    const apiario = apiaries.find(a => String(a.id) === String(formData.apiarioId) || String(a.Id) === String(formData.apiarioId));
+                    const tipoMel = apiario?.TipoDeMel || apiario?.tipoDeMel || '';
+                    return { ...f, colmeiaId: arr.find(c => c.id === Number(f.colmeiaId)) ? f.colmeiaId : '', tipoMel };
+                });
             } catch (e) {
                 setColmeiasApiario([]);
-                setFormData(f => ({ ...f, colmeiaId: '' }));
+                setFormData(f => ({ ...f, colmeiaId: '', tipoMel: '' }));
             }
         };
         fetchColmeias();
-    }, [formData.apiarioId]);
+    }, [formData.apiarioId, apiaries]);
 
     // Carrega apiários e tipos de mel da API
     useEffect(() => {
@@ -62,7 +67,9 @@ const ProductionRegistration = () => {
                 const response = await buscarApiarios();
                 const apiariesData = Array.isArray(response) ? response : (response?.dados || []);
                 console.log('[DEBUG] Apiários carregados:', apiariesData);
-                setApiaries(apiariesData);
+                // Filter out inactive apiaries (atividade === 0)
+                const activeApiaries = apiariesData.filter(ap => ap.atividade !== 0);
+                setApiaries(activeApiaries);
                 setHoneyTypes(buscarTiposMel());
             } catch (error) {
                 console.error('Erro ao buscar apiários:', error);
@@ -209,15 +216,7 @@ const ProductionRegistration = () => {
                         <div className="input-group">
                             <label>Tipo de mel <span className="required-star">*</span></label>
                             <CustomSelect
-                                options={
-                                    Array.isArray(honeyTypes)
-                                        ? honeyTypes.map(type =>
-                                            typeof type === 'object' && type.value && type.label
-                                                ? type
-                                                : { value: String(type), label: String(type) }
-                                        )
-                                        : []
-                                }
+                                options={honeyTypes}
                                 value={formData.tipoMel}
                                 onChange={(val) => setFormData({ ...formData, tipoMel: val })}
                                 placeholder="Selecione o tipo de mel"

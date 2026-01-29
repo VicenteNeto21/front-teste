@@ -4,19 +4,19 @@ export const registrarMovimentacao = (apiarioId, payload) =>
         method: 'POST',
         body: JSON.stringify(payload)
     });
-    // Buscar movimentações por apiário, tipo e ano
-    export const buscarMovimentacoes = async (apiarioId, tipo, ano) => {
-        let url = `/api/apiarios/${apiarioId}/movimentacoes`;
-        // O backend pode não aceitar query params, mas tentamos filtrar no frontend se necessário
-        const response = await apiFetch(url, { method: 'GET' });
-        // Filtra por tipo e ano no frontend
-        if (Array.isArray(response)) {
-            return response.filter(mov => mov.tipo === tipo && mov.data && mov.data.startsWith(ano));
-        } else if (response?.dados && Array.isArray(response.dados)) {
-            return response.dados.filter(mov => mov.tipo === tipo && mov.data && mov.data.startsWith(ano));
-        }
-        return [];
-    };
+// Buscar movimentações por apiário, tipo e ano
+export const buscarMovimentacoes = async (apiarioId, tipo, ano) => {
+    let url = `/api/apiarios/${apiarioId}/movimentacoes`;
+    // O backend pode não aceitar query params, mas tentamos filtrar no frontend se necessário
+    const response = await apiFetch(url, { method: 'GET' });
+    // Filtra por tipo e ano no frontend
+    if (Array.isArray(response)) {
+        return response.filter(mov => mov.tipo === tipo && mov.data && mov.data.startsWith(ano));
+    } else if (response?.dados && Array.isArray(response.dados)) {
+        return response.dados.filter(mov => mov.tipo === tipo && mov.data && mov.data.startsWith(ano));
+    }
+    return [];
+};
 import { apiFetch } from './api';
 
 // Buscar apiários do usuário logado
@@ -96,7 +96,7 @@ export const deletarColmeia = (colmeiaId) =>
 
 // Buscar produção do apiário
 export const buscarProducaoDoApiario = (apiarioId) =>
-    apiFetch(`/api/Producao/BuscarProducaoDoApiario?apiarioId=${apiarioId}`);
+    apiFetch(`/api/Producao/BuscarProducoesDoApiario/${apiarioId}`);
 
 // Criar nova produção
 export const criarProducao = (dadosProducao) =>
