@@ -17,6 +17,10 @@ export const buscarMovimentacoes = async (apiarioId, tipo, ano) => {
     }
     return [];
 };
+
+// Buscar gráfico mensal de perdas
+export const buscarGraficoMensal = (apiarioId, ano) =>
+    apiFetch(`/api/apiarios/${apiarioId}/movimentacoes/grafico-mensal?ano=${ano}`);
 import { apiFetch } from './api';
 
 // Buscar apiários do usuário logado

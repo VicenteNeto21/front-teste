@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { ArrowLeft } from 'lucide-react';
 import '../assets/css/HiveRegistration.css';
 import '../assets/css/Reports.css';
-import { buscarApiarios, buscarProducaoDoApiario } from '../services/apiarioService';
+import { buscarApiarios, buscarGraficoMensal } from '../services/apiarioService';
 import Navbar from '../components/Navbar';
 import CustomSelect from '../components/CustomSelect';
 import ToastCenter from '../components/Toast';
@@ -15,17 +15,13 @@ const SalesReport = () => {
     const [apiarioId, setApiarioId] = useState('');
     const [periodo, setPeriodo] = useState('ano');
     const [ano, setAno] = useState(new Date().getFullYear().toString());
-    const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
-    const [semana, setSemana] = useState('1');
     const [salesData, setSalesData] = useState([]);
     const [priceData, setPriceData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState(null);
 
     const periodOptions = [
-        { value: 'ano', label: 'Anual' },
-        // { value: 'mes', label: 'Mensal' }, // Adicionar suporte depois se necessário
-        // { value: 'semana', label: 'Semanal' }
+        { value: 'ano', label: 'Anual' }
     ];
 
     const yearOptions = [
@@ -68,47 +64,32 @@ const SalesReport = () => {
 
             setLoading(true);
             try {
-                const prodRes = await buscarProducaoDoApiario(apiarioId);
-                const dados = Array.isArray(prodRes) ? prodRes : (prodRes?.dados || []);
+                // Use backend-first endpoint
+                const res = await buscarGraficoMensal(apiarioId, ano);
+                // Defensive check (though backend should return list)
+                const dados = Array.isArray(res)
+                    ? res
+                    : Array.isArray(res?.dados)
+                        ? res.dados
+                        : [];
 
-                // Filtra por Vendas (Tipo 2) e Ano
-                const validSales = dados.filter(m => {
-                    if (m.tipo !== 2) return false;
-                    const dataMov = m.data ? new Date(m.data) : null;
-                    if (!dataMov) return false;
-                    return dataMov.getFullYear().toString() === ano;
+                // Mapeia para os gráficos
+                const chart1Data = dados.map(m => ({
+                    name: m.nomeMes ? m.nomeMes.substring(0, 3) : `Mês ${m.mes}`,
+                    valor: m.totalVendaValor || 0
+                }));
+
+                const chart2Data = dados.map(m => {
+                    const valorTotal = m.totalVendaValor || 0;
+                    const volumeTotal = m.totalVendaKg || 0;
+                    // Evita divisão por zero
+                    const precoMedio = volumeTotal > 0 ? parseFloat((valorTotal / volumeTotal).toFixed(2)) : 0;
+
+                    return {
+                        name: m.nomeMes ? m.nomeMes.substring(0, 3) : `Mês ${m.mes}`,
+                        valor: precoMedio
+                    };
                 });
-
-                // Agrega por mês
-                const monthlySales = Array(12).fill(0).map((_, i) => ({
-                    name: new Date(0, i).toLocaleString('pt-BR', { month: 'short' }),
-                    index: i + 1,
-                    valor: 0, // Valor em R$
-                    volume: 0, // Volume em Kg
-                    count: 0
-                }));
-
-                validSales.forEach(sale => {
-                    const date = new Date(sale.data);
-                    const monthIndex = date.getMonth();
-                    monthlySales[monthIndex].valor += (sale.valor || 0);
-                    monthlySales[monthIndex].volume += (sale.quantidadeKg || 0);
-                    monthlySales[monthIndex].count += 1;
-                });
-
-                // Prepara dados para os gráficos
-                // Gráfico 1: Vendas Totais (R$)
-                // Nota: O label Y está 'Volume (L)', mas o título é 'Vendas (R$)'. Vamos corrigir o label Y para R$.
-                const chart1Data = monthlySales.map(m => ({
-                    name: m.name,
-                    valor: m.valor
-                }));
-
-                // Gráfico 2: Preço Médio por Litro/Kg (R$/Kg)
-                const chart2Data = monthlySales.map(m => ({
-                    name: m.name,
-                    valor: m.volume > 0 ? parseFloat((m.valor / m.volume).toFixed(2)) : 0
-                }));
 
                 setSalesData(chart1Data);
                 setPriceData(chart2Data);
@@ -180,7 +161,9 @@ const SalesReport = () => {
                 <div className="charts-grid">
                     <div className="chart-card">
                         <h3 className="chart-title">Vendas (R$)</h3>
-                        {loading ? <div style={{ textAlign: 'center', padding: '50px' }}>Carregando...</div> : (
+                        {loading ? <div className="chart-loading">Carregando...</div> : salesData.length === 0 ? (
+                            <div className="chart-empty">Sem dados</div>
+                        ) : (
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart
                                     data={salesData}
@@ -230,7 +213,9 @@ const SalesReport = () => {
 
                     <div className="chart-card">
                         <h3 className="chart-title">Preço Médio (R$/Kg)</h3>
-                        {loading ? <div style={{ textAlign: 'center', padding: '50px' }}>Carregando...</div> : (
+                        {loading ? <div className="chart-loading">Carregando...</div> : priceData.length === 0 ? (
+                            <div className="chart-empty">Sem dados</div>
+                        ) : (
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart
                                     data={priceData}

@@ -239,7 +239,19 @@ namespace BackendApi.Services.MovimentacaoService
                         .Sum(m => m.QuantidadeKg),
                     TotalSaidaKg = movimentos
                         .Where(m => m.Data.Month == mes && m.Tipo != TipoMovimentoMelEnum.Colheita)
-                        .Sum(m => m.QuantidadeKg)
+                        .Sum(m => m.QuantidadeKg),
+                    TotalVendaKg = movimentos
+                        .Where(m => m.Data.Month == mes && m.Tipo == TipoMovimentoMelEnum.Venda)
+                        .Sum(m => m.QuantidadeKg),
+                    TotalPerdaKg = movimentos
+                        .Where(m => m.Data.Month == mes && m.Tipo == TipoMovimentoMelEnum.Perda)
+                        .Sum(m => m.QuantidadeKg),
+                    TotalDoacaoKg = movimentos
+                        .Where(m => m.Data.Month == mes && m.Tipo == TipoMovimentoMelEnum.Doacao)
+                        .Sum(m => m.QuantidadeKg),
+                    TotalVendaValor = movimentos
+                        .Where(m => m.Data.Month == mes && m.Tipo == TipoMovimentoMelEnum.Venda)
+                        .Sum(m => m.Valor)
                 })
                 .ToList();
 

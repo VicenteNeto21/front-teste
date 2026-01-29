@@ -515,11 +515,12 @@ const ApiaryDetails = () => {
                                     <label>
                                         Tipo de mel
                                     </label>
-                                    <CustomSelect
-                                        options={honeyTypes}
-                                        value={selectedHive.tipoMel}
-                                        onChange={(val) => handleHiveChange('tipoMel', val)}
-                                        placeholder="Selecione o tipo"
+                                    <input
+                                        type="text"
+                                        value={formData.tipoMel}
+                                        readOnly
+                                        className="readonly"
+                                        title="O tipo de mel é definido pelo apiário"
                                     />
                                 </div>
 

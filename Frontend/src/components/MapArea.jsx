@@ -262,8 +262,11 @@ const MapArea = ({ flyToLocation }) => {
                     };
                 });
 
-                setApiaries(processedApiaries);
-                console.log('✅ Apiários carregados:', processedApiaries.length);
+                // Filtra apiários desativados
+                const activeApiaries = processedApiaries.filter(ap => ap.atividade !== 0);
+
+                setApiaries(activeApiaries);
+                console.log('✅ Apiários carregados:', activeApiaries.length);
             } catch (error) {
                 console.error('❌ Erro ao carregar apiários:', error);
             }

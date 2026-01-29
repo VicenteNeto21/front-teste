@@ -57,7 +57,10 @@ const Sidebar = ({ onHiveSelect }) => {
                     safeHives = hivesData;
                 }
 
-                setApiaries(safeApiaries);
+                // Filtra apiários desativados
+                const activeApiaries = safeApiaries.filter(ap => ap.atividade !== 0);
+
+                setApiaries(activeApiaries);
                 setHives(safeHives);
             } catch (error) {
                 console.error("Erro ao carregar dados do Sidebar:", error);
