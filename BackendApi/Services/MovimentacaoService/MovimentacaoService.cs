@@ -1,3 +1,4 @@
+using System.Globalization;
 using BackendApi.Data;
 using BackendApi.Dto.MovimentacaoDTO;
 using BackendApi.Enums;
@@ -152,6 +153,99 @@ namespace BackendApi.Services.MovimentacaoService
                 response.Mensage = "Erro ao registrar movimentação: " + ex.Message;
                 return response;
             }
+        }
+
+        public async Task<Response<List<MovimentacaoResponseDTO>>> ListarPorApiario(int userId, int apiarioId)
+        {
+            var response = new Response<List<MovimentacaoResponseDTO>>();
+
+            var dados = await _context.MovimentacaoMel
+                .Where(m =>
+                    m.Apiario.Id == apiarioId &&
+                    m.Apiario.User.Id == userId &&
+                    m.DeletionDate == null
+                )
+                .OrderByDescending(m => m.Data)
+                .Select(m => new MovimentacaoResponseDTO
+                {
+                    Id = m.Id,
+                    Tipo = m.Tipo,
+                    QuantidadeKg = m.QuantidadeKg,
+                    Valor = m.Valor,
+                    Data = m.Data,
+                    Motivo = m.Motivo,
+                    Observacao = m.Observacao
+                })
+                .ToListAsync();
+
+            response.Status = true;
+            response.Dados = dados;
+            return response;
+        }
+
+        public async Task<Response<MovimentacaoResponseDTO>> BuscarPorId(int userId, int apiarioId,int movimentacaoId)
+        {
+            var response = new Response<MovimentacaoResponseDTO>();
+
+            var movimentacao = await _context.MovimentacaoMel
+                .Where(m =>
+                    m.Id == movimentacaoId &&
+                    m.Apiario.Id == apiarioId &&
+                    m.Apiario.User.Id == userId
+                )
+                .Select(m => new MovimentacaoResponseDTO
+                {
+                    Id = m.Id,
+                    Tipo = m.Tipo,
+                    QuantidadeKg = m.QuantidadeKg,
+                    Valor = m.Valor,
+                    Data = m.Data,
+                    Motivo = m.Motivo,
+                    Observacao = m.Observacao
+                })
+                .FirstOrDefaultAsync();
+
+            if (movimentacao == null)
+            {
+                response.Status = false;
+                response.Mensage = "Movimentação não encontrada";
+                return response;
+            }
+
+            response.Status = true;
+            response.Dados = movimentacao;
+            return response;
+        }
+
+        public async Task<Response<List<GraficoMensalMovimentacaoDTO>>> GraficoMensal(int userId, int apiarioId, int ano)
+        {
+            var response = new Response<List<GraficoMensalMovimentacaoDTO>>();
+
+            var movimentos = await _context.MovimentacaoMel
+                .Where(m =>
+                    m.Apiario.Id == apiarioId &&
+                    m.Apiario.User.Id == userId &&
+                    m.Data.Year == ano
+                )
+                .ToListAsync();
+
+            var resultado = Enumerable.Range(1, 12)
+                .Select(mes => new GraficoMensalMovimentacaoDTO
+                {
+                    Mes = mes,
+                    NomeMes = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(mes),
+                    TotalEntradaKg = movimentos
+                        .Where(m => m.Data.Month == mes && m.Tipo == TipoMovimentoMelEnum.Colheita)
+                        .Sum(m => m.QuantidadeKg),
+                    TotalSaidaKg = movimentos
+                        .Where(m => m.Data.Month == mes && m.Tipo != TipoMovimentoMelEnum.Colheita)
+                        .Sum(m => m.QuantidadeKg)
+                })
+                .ToList();
+
+            response.Status = true;
+            response.Dados = resultado;
+            return response;
         }
     }
 }

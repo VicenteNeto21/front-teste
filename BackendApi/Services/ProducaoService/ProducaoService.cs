@@ -96,46 +96,5 @@ namespace BackendApi.Services.ProducaoService
             return response;
         }
 
-        public async Task<Response<List<GraficoMensalProducaoDTO>>> BuscarGraficoMensal(int userId, int ano)
-        {
-            var response = new Response<List<GraficoMensalProducaoDTO>>();
-
-            try
-            {
-                var dados = await _context.MovimentacaoMel
-                    .Where(m =>
-                        m.Apiario.User.Id == userId &&
-                        m.Data.Year == ano
-                    )
-                    .GroupBy(m => m.Data.Month)
-                    .Select(g => new GraficoMensalProducaoDTO
-                    {
-                        Mes = g.Key,
-                        EntradaKg = g
-                            .Where(x => x.Tipo == Enums.TipoMovimentoMelEnum.Colheita)
-                            .Sum(x => x.QuantidadeKg),
-
-                        SaidaKg = g
-                            .Where(x =>
-                                x.Tipo == Enums.TipoMovimentoMelEnum.Venda ||
-                                x.Tipo == Enums.TipoMovimentoMelEnum.Perda
-                            )
-                            .Sum(x => x.QuantidadeKg)
-                    })
-                    .OrderBy(x => x.Mes)
-                    .ToListAsync();
-
-                response.Status = true;
-                response.Mensage = "Gráfico mensal carregado com sucesso";
-                response.Dados = dados;
-            }
-            catch (Exception ex)
-            {
-                response.Status = false;
-                response.Mensage = $"Erro ao buscar gráfico mensal: {ex.Message}";
-            }
-
-            return response;
-        }
     }
 }

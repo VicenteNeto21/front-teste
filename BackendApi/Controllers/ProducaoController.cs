@@ -41,13 +41,6 @@ namespace BackendApi.Controllers
             return Ok(response);
         }
 
-        [HttpGet("GraficoMensalTodosAparios")]
-        public async Task<ActionResult> BuscarGraficoMensal([FromQuery] int ano)
-        {
-            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-            var response = await _producaoInterface.BuscarGraficoMensal(userId, ano);
-            return Ok(response);
-        }
+        
     }
 }
